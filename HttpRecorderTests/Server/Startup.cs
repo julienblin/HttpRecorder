@@ -9,9 +9,7 @@ namespace HttpRecorderTests.Server
     {
         public void ConfigureServices(IServiceCollection services)
         {
-            services.AddMvcCore()
-                .AddFormatterMappings()
-                .AddJsonFormatters();
+            services.AddMvc();
         }
 
         public void Configure(IApplicationBuilder app)
