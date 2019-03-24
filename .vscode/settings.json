@@ -5,5 +5,8 @@
   },
   "dotnet-test-explorer.autoExpandTree": true,
   "dotnet-test-explorer.testProjectPath": "**/*{Tests}/*.csproj",
-  "dotnet-test-explorer.enableTelemetry": false
+  "dotnet-test-explorer.enableTelemetry": false,
+  "cSpell.words": [
+    "Xunit"
+  ]
 }
