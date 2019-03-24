@@ -1,0 +1,9 @@
+{
+  "files.exclude": {
+      "**/bin": true,
+      "**/obj": true
+  },
+  "dotnet-test-explorer.autoExpandTree": true,
+  "dotnet-test-explorer.testProjectPath": "**/*{Tests}/*.csproj",
+  "dotnet-test-explorer.enableTelemetry": false
+}
