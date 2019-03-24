@@ -3,9 +3,6 @@
       "EditorConfig.EditorConfig",
       "ms-vscode.csharp",
       "jchannon.csharpextensions",
-      "k--kato.docomment",
-      "eamodio.gitlens",
-      "streetsidesoftware.code-spell-checker",
-      "formulahendry.dotnet-test-explorer"
+      "k--kato.docomment"
   ]
 }
