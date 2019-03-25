@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Net.Http;
@@ -82,6 +82,30 @@ namespace HttpRecorderTests
             response.EnsureSuccessStatusCode();
             var result = await response.Content.ReadAsAsync<SampleModel>();
             result.Name.Should().Be(sampleModel.Name);
+        }
+
+        [Theory]
+        [InlineData(HttpRecorderMode.Passthrough)]
+        public async Task ItShouldExecuteMultipleRequestsInParallel(HttpRecorderMode mode)
+        {
+            const int Concurrency = 10;
+            var client = CreateHttpClient(mode);
+            var tasks = new List<Task<HttpResponseMessage>>();
+
+            for (var i = 0; i < Concurrency; i++)
+            {
+                tasks.Add(client.GetAsync($"{ApiController.JsonUri}?name={i}"));
+            }
+
+            var responses = await Task.WhenAll(tasks);
+
+            for (var i = 0; i < Concurrency; i++)
+            {
+                var response = responses[i];
+                response.EnsureSuccessStatusCode();
+                var result = await response.Content.ReadAsAsync<SampleModel>();
+                result.Name.Should().Be($"{i}");
+            }
         }
 
         private HttpClient CreateHttpClient(HttpRecorderMode mode, [CallerMemberName] string testName = "")
