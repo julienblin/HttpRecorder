@@ -3,6 +3,8 @@ using System.Linq;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
+using HttpRecorder.Repositories;
+using HttpRecorder.Repositories.HAR;
 
 namespace HttpRecorder
 {
@@ -27,7 +29,10 @@ namespace HttpRecorder
         /// The function to use to match interactions with incoming <see cref="HttpRequestMessage"/>.
         /// Defaults to matching by <see cref="HttpMethod"/> and <see cref="HttpRequestMessage.RequestUri"/>.
         /// </param>
-        /// <param name="repository">The <see cref="IInteractionRepository"/> to use to read/write the interaction.</param>
+        /// <param name="repository">
+        /// The <see cref="IInteractionRepository"/> to use to read/write the interaction.
+        /// Defaults to <see cref="HttpArchiveInteractionRepository"/>.
+        /// </param>
         public HttpRecorderDelegatingHandler(
             string interactionName,
             HttpRecorderMode mode = HttpRecorderMode.Auto,
@@ -39,7 +44,7 @@ namespace HttpRecorder
             InteractionName = interactionName;
             Mode = mode;
             _matcher = matcher;
-            _repository = repository;
+            _repository = repository ?? new HttpArchiveInteractionRepository();
         }
 
         /// <summary>

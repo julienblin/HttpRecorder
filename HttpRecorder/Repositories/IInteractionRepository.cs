@@ -1,7 +1,7 @@
 ﻿using System.Threading;
 using System.Threading.Tasks;
 
-namespace HttpRecorder
+namespace HttpRecorder.Repositories
 {
     /// <summary>
     /// Allow storage of <see cref="Interaction"/>.
