@@ -1,8 +1,10 @@
 ﻿using System;
+using System.Diagnostics;
 using System.Linq;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
+using HttpRecorder.Matchers;
 using HttpRecorder.Repositories;
 using HttpRecorder.Repositories.HAR;
 
@@ -27,7 +29,7 @@ namespace HttpRecorder
         /// <param name="innerHandler">The inner <see cref="HttpMessageHandler" /> to configure. If not provided, <see cref="HttpClientHandler" /> will be used.</param>
         /// <param name="matcher">
         /// The function to use to match interactions with incoming <see cref="HttpRequestMessage"/>.
-        /// Defaults to matching by <see cref="HttpMethod"/> and <see cref="HttpRequestMessage.RequestUri"/>.
+        /// Defaults to matching by <see cref="HttpMethod"/> and <see cref="HttpRequestMessage.RequestUri"/> - <see cref="DefaultMatcher"/>.
         /// </param>
         /// <param name="repository">
         /// The <see cref="IInteractionRepository"/> to use to read/write the interaction.
@@ -43,7 +45,7 @@ namespace HttpRecorder
         {
             InteractionName = interactionName;
             Mode = mode;
-            _matcher = matcher;
+            _matcher = matcher ?? DefaultMatcher.Matcher;
             _repository = repository ?? new HttpArchiveInteractionRepository();
         }
 
@@ -86,16 +88,23 @@ namespace HttpRecorder
                     return interactionMessage.Response;
                 }
 
+                var start = DateTimeOffset.Now;
+                var sw = Stopwatch.StartNew();
                 var innerResponse = await base.SendAsync(request, cancellationToken);
+                sw.Stop();
                 if (_interaction == null)
                 {
                     _interaction = new Interaction(InteractionName);
                 }
 
-                var newInteractionMessage = new InteractionMessage(innerResponse);
-                _interaction.Messages.Add(newInteractionMessage);
-                await _repository.StoreAsync(_interaction, cancellationToken);
-                return newInteractionMessage.Response;
+                _interaction.Messages.Add(
+                    new InteractionMessage(
+                        innerResponse,
+                        new InteractionMessageTimings(start, sw.Elapsed)));
+                _interaction = await _repository.StoreAsync(_interaction, cancellationToken);
+
+                // We do intentionally return the round-triped (from repository) interaction.
+                return _interaction.Messages.Last().Response;
             }
             finally
             {

@@ -26,22 +26,32 @@ namespace HttpRecorderTests
 
         [Theory]
         [InlineData(HttpRecorderMode.Passthrough)]
+        [InlineData(HttpRecorderMode.Record)]
         public async Task ItShouldGetJson(HttpRecorderMode mode)
         {
-            var client = CreateHttpClient(mode);
+            var(client, file) = CreateHttpClient(mode);
+            try
+            {
+                var response = await client.GetAsync(ApiController.JsonUri);
 
-            var response = await client.GetAsync(ApiController.JsonUri);
-
-            response.EnsureSuccessStatusCode();
-            var result = await response.Content.ReadAsAsync<SampleModel>();
-            result.Name.Should().Be(SampleModel.DefaultName);
+                response.EnsureSuccessStatusCode();
+                var result = await response.Content.ReadAsAsync<SampleModel>();
+                result.Name.Should().Be(SampleModel.DefaultName);
+            }
+            finally
+            {
+                if (File.Exists(file))
+                {
+                    File.Delete(file);
+                }
+            }
         }
 
         [Theory]
         [InlineData(HttpRecorderMode.Passthrough)]
         public async Task ItShouldGetJsonWithQueryString(HttpRecorderMode mode)
         {
-            var client = CreateHttpClient(mode);
+            var(client, file) = CreateHttpClient(mode);
             var name = "Bar";
 
             var response = await client.GetAsync($"{ApiController.JsonUri}?name={name}");
@@ -55,7 +65,7 @@ namespace HttpRecorderTests
         [InlineData(HttpRecorderMode.Passthrough)]
         public async Task ItShouldPostJson(HttpRecorderMode mode)
         {
-            var client = CreateHttpClient(mode);
+            var(client, file) = CreateHttpClient(mode);
             var sampleModel = new SampleModel();
 
             var response = await client.PostAsJsonAsync(ApiController.JsonUri, sampleModel);
@@ -69,7 +79,7 @@ namespace HttpRecorderTests
         [InlineData(HttpRecorderMode.Passthrough)]
         public async Task ItShouldPostFormData(HttpRecorderMode mode)
         {
-            var client = CreateHttpClient(mode);
+            var(client, file) = CreateHttpClient(mode);
             var sampleModel = new SampleModel();
 
             var formContent = new FormUrlEncodedContent(new[]
@@ -89,7 +99,7 @@ namespace HttpRecorderTests
         public async Task ItShouldExecuteMultipleRequestsInParallel(HttpRecorderMode mode)
         {
             const int Concurrency = 10;
-            var client = CreateHttpClient(mode);
+            var(client, file) = CreateHttpClient(mode);
             var tasks = new List<Task<HttpResponseMessage>>();
 
             for (var i = 0; i < Concurrency; i++)
@@ -108,12 +118,14 @@ namespace HttpRecorderTests
             }
         }
 
-        private HttpClient CreateHttpClient(HttpRecorderMode mode, [CallerMemberName] string testName = "")
+        private(HttpClient client, string testName) CreateHttpClient(HttpRecorderMode mode, [CallerMemberName] string testName = "")
         {
-            return new HttpClient(new HttpRecorderDelegatingHandler(testName, mode: mode))
-            {
-                BaseAddress = _fixture.ServerUri,
-            };
+            return (
+                new HttpClient(new HttpRecorderDelegatingHandler(testName, mode: mode))
+                {
+                    BaseAddress = _fixture.ServerUri,
+                },
+                testName);
         }
     }
 }
