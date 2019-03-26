@@ -1,4 +1,7 @@
-﻿using System.Diagnostics.CodeAnalysis;
+﻿using System;
+using System.Diagnostics.CodeAnalysis;
+using System.Net;
+using System.Net.Http;
 
 namespace HttpRecorder.Repositories.HAR
 {
@@ -8,6 +11,44 @@ namespace HttpRecorder.Repositories.HAR
     /// </summary>
     public class Response : Message
     {
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Response"/> class.
+        /// </summary>
+        public Response()
+        {
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Response"/> class from <paramref name="response"/>.
+        /// </summary>
+        /// <param name="response">The <see cref="HttpResponseMessage"/> to initialize from.</param>
+        public Response(HttpResponseMessage response)
+        {
+            HttpVersion = $"{HTTPVERSIONPREFIX}{response.Version}";
+            Status = (int)response.StatusCode;
+            StatusText = response.ReasonPhrase;
+            if (response.Headers.Location != null)
+            {
+                RedirectUrl = response.Headers.Location.ToString();
+            }
+
+            foreach (var header in response.Headers)
+            {
+                Headers.Add(new Header(header));
+            }
+
+            if (response.Content != null)
+            {
+                foreach (var header in response.Content.Headers)
+                {
+                    Headers.Add(new Header(header));
+                }
+
+                BodySize = response.Content.ReadAsByteArrayAsync().Result.Length;
+                Content = new Content(response.Content);
+            }
+        }
+
         /// <summary>
         /// Gets or sets the response status.
         /// </summary>
@@ -28,5 +69,30 @@ namespace HttpRecorder.Repositories.HAR
         /// </summary>
         [SuppressMessage("Design", "CA1056:Uri properties should not be strings", Justification = "Conform to specification that can include empty strings.")]
         public string RedirectUrl { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Returns a <see cref="HttpResponseMessage"/>.
+        /// </summary>
+        /// <returns>The <see cref="HttpResponseMessage"/> created from this.</returns>
+        public HttpResponseMessage ToHttpResponseMessage()
+        {
+            var response = new HttpResponseMessage
+            {
+                Content = Content?.ToHttpContent(),
+                StatusCode = (HttpStatusCode)Status,
+                ReasonPhrase = StatusText,
+                Version = GetVersion(),
+            };
+            AddHeadersWithoutValidation(response.Headers);
+            AddHeadersWithoutValidation(response.Content?.Headers);
+
+            // The HTTP Client is adding the content length header on HttpConnectionResponseContent event when the server does not have a header.
+            if (response.Content != null && response.Content.Headers?.ContentLength == null && BodySize > 0)
+            {
+                response.Content.Headers.ContentLength = BodySize;
+            }
+
+            return response;
+        }
     }
 }

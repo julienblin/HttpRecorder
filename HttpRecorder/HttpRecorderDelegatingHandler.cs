@@ -64,7 +64,8 @@ namespace HttpRecorder
         {
             if (Mode == HttpRecorderMode.Passthrough)
             {
-                return await base.SendAsync(request, cancellationToken);
+                var response = await base.SendAsync(request, cancellationToken);
+                return response;
             }
 
             await _interactionLock.WaitAsync();

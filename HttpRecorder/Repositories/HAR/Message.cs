@@ -1,4 +1,6 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
+using System.Net.Http.Headers;
 
 namespace HttpRecorder.Repositories.HAR
 {
@@ -7,6 +9,11 @@ namespace HttpRecorder.Repositories.HAR
     /// </summary>
     public abstract class Message
     {
+        /// <summary>
+        /// Prefix to use for <see cref="HttpVersion"/>.
+        /// </summary>
+        protected const string HTTPVERSIONPREFIX = "HTTP/";
+
         /// <summary>
         /// Gets or sets the HTTP version.
         /// </summary>
@@ -33,5 +40,36 @@ namespace HttpRecorder.Repositories.HAR
         /// Set to -1 if the info is not available.
         /// </summary>
         public int BodySize { get; set; } = -1;
+
+        /// <summary>
+        /// Returns a <see cref="Version"/> from <see cref="HttpVersion"/>;
+        /// </summary>
+        /// <returns>The <see cref="Version"/>.</returns>
+        protected Version GetVersion()
+        {
+            var version = HttpVersion;
+            if (version.StartsWith(HTTPVERSIONPREFIX, StringComparison.InvariantCultureIgnoreCase))
+            {
+                version = version.Substring(HTTPVERSIONPREFIX.Length);
+            }
+
+            return new Version(version);
+        }
+
+        /// <summary>
+        /// Adds <see cref="Headers"/> tp <paramref name="headers"/>, without validation.
+        /// <paramref name="headers"/> can be null.
+        /// </summary>
+        /// <param name="headers">The <see cref="HttpHeaders"/> to add to.</param>
+        protected void AddHeadersWithoutValidation(HttpHeaders headers)
+        {
+            if (headers != null)
+            {
+                foreach (var header in Headers)
+                {
+                    headers.TryAddWithoutValidation(header.Name, header.Value);
+                }
+            }
+        }
     }
 }

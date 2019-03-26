@@ -1,4 +1,7 @@
-﻿namespace HttpRecorder.Repositories.HAR
+﻿using System;
+using System.Net.Http;
+
+namespace HttpRecorder.Repositories.HAR
 {
     /// <summary>
     /// Describes details about response content
@@ -6,6 +9,38 @@
     /// </summary>
     public class Content
     {
+        private const string EncodingBase64 = "base64";
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Content"/> class.
+        /// </summary>
+        public Content()
+        {
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Content"/> class from <paramref name="content"/>.
+        /// </summary>
+        /// <param name="content">The <see cref="HttpContent"/> to initialize from.</param>
+        public Content(HttpContent content)
+        {
+            if (content != null)
+            {
+                var bodyBytes = content.ReadAsByteArrayAsync().Result;
+                Size = bodyBytes.Length;
+                MimeType = content.Headers?.ContentType?.ToString();
+                if (content.IsBinary())
+                {
+                    Text = Convert.ToBase64String(bodyBytes);
+                    Encoding = EncodingBase64;
+                }
+                else
+                {
+                    Text = System.Text.Encoding.UTF8.GetString(bodyBytes);
+                }
+            }
+        }
+
         /// <summary>
         /// Gets or sets the length of the returned content in bytes.
         /// </summary>
@@ -29,5 +64,27 @@
         /// Leave out this field if the text field is HTTP decoded (decompressed and unchunked), than trans-coded from its original character set into UTF-8.
         /// </summary>
         public string Encoding { get; set; }
+
+        /// <summary>
+        /// Returns a <see cref="ByteArrayContent"/>.
+        /// </summary>
+        /// <returns>Either <see cref="ByteArrayContent"/>, or null if no content.</returns>
+        public ByteArrayContent ToHttpContent()
+        {
+            ByteArrayContent result = null;
+            if (!string.IsNullOrEmpty(Text))
+            {
+                if (string.Equals(Encoding, EncodingBase64, StringComparison.InvariantCultureIgnoreCase))
+                {
+                    result = new ByteArrayContent(Convert.FromBase64String(Text));
+                }
+                else
+                {
+                    result = new ByteArrayContent(System.Text.Encoding.UTF8.GetBytes(Text));
+                }
+            }
+
+            return result;
+        }
     }
 }

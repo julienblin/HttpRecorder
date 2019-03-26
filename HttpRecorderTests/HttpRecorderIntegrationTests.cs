@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Formatting;
 using System.Net.Http.Headers;
@@ -24,25 +25,35 @@ namespace HttpRecorderTests
             _fixture = fixture;
         }
 
-        [Theory]
-        [InlineData(HttpRecorderMode.Passthrough)]
-        [InlineData(HttpRecorderMode.Record)]
-        public async Task ItShouldGetJson(HttpRecorderMode mode)
+        [Fact]
+        public async Task ItShouldGetJson()
         {
-            var(client, file) = CreateHttpClient(mode);
-            try
+            var iterations = new[]
             {
+                HttpRecorderMode.Passthrough,
+                HttpRecorderMode.Record,
+                HttpRecorderMode.Replay,
+                HttpRecorderMode.Auto,
+            };
+            var responses = new List<HttpResponseMessage>();
+            HttpResponseMessage passthroughResponse = null;
+            foreach (var mode in iterations)
+            {
+                var(client, file) = CreateHttpClient(mode);
+
                 var response = await client.GetAsync(ApiController.JsonUri);
+                responses.Add(response);
 
                 response.EnsureSuccessStatusCode();
-                var result = await response.Content.ReadAsAsync<SampleModel>();
-                result.Name.Should().Be(SampleModel.DefaultName);
-            }
-            finally
-            {
-                if (File.Exists(file))
+                if (mode == HttpRecorderMode.Passthrough)
                 {
-                    File.Delete(file);
+                    passthroughResponse = response;
+                    var result = await response.Content.ReadAsAsync<SampleModel>();
+                    result.Name.Should().Be(SampleModel.DefaultName);
+                }
+                else
+                {
+                    response.Should().BeEquivalentTo(passthroughResponse);
                 }
             }
         }

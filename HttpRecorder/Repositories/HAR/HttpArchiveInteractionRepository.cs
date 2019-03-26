@@ -39,13 +39,13 @@ namespace HttpRecorder.Repositories.HAR
                 File.ReadAllText(interactionName, Encoding.UTF8),
                 _jsonSettings);
 
-            return Task.FromResult(ToInteraction(interactionName, archive));
+            return Task.FromResult(archive.ToInteraction(interactionName));
         }
 
         /// <inheritdoc />
         public Task<Interaction> StoreAsync(Interaction interaction, CancellationToken cancellationToken = default)
         {
-            var archive = ToArchive(interaction);
+            var archive = new HttpArchive(interaction);
             var archiveDirectory = Path.GetDirectoryName(interaction.Name);
             if (!string.IsNullOrWhiteSpace(archiveDirectory) && !Directory.Exists(archiveDirectory))
             {
@@ -54,32 +54,7 @@ namespace HttpRecorder.Repositories.HAR
 
             File.WriteAllText(interaction.Name, JsonConvert.SerializeObject(archive, Formatting.Indented, _jsonSettings));
 
-            return Task.FromResult(ToInteraction(interaction.Name, archive));
-        }
-
-        private static Interaction ToInteraction(string interactionName, HttpArchive archive)
-        {
-            return new Interaction(
-                interactionName,
-                archive.Log.Entries.Select(entry =>
-                {
-                    return new InteractionMessage(
-                        new HttpResponseMessage(),
-                        new InteractionMessageTimings(entry.StartedDateTime, TimeSpan.FromMilliseconds(entry.Time)));
-                }));
-        }
-
-        private static HttpArchive ToArchive(Interaction interaction)
-        {
-            var archive = new HttpArchive();
-
-            foreach (var message in interaction.Messages)
-            {
-                var entry = new Entry();
-                archive.Log.Entries.Add(entry);
-            }
-
-            return archive;
+            return Task.FromResult(archive.ToInteraction(interaction.Name));
         }
     }
 }
