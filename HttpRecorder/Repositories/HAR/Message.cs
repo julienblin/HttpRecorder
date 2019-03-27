@@ -67,7 +67,10 @@ namespace HttpRecorder.Repositories.HAR
             {
                 foreach (var header in Headers)
                 {
-                    headers.TryAddWithoutValidation(header.Name, header.Value);
+                    if (!headers.TryGetValues(header.Name, out var _))
+                    {
+                        headers.TryAddWithoutValidation(header.Name, header.Value);
+                    }
                 }
             }
         }
