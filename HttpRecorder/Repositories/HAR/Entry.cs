@@ -22,7 +22,7 @@ namespace HttpRecorder.Repositories.HAR
         public Entry(InteractionMessage message)
         {
             StartedDateTime = message.Timings.StartedDateTime;
-            Time = Math.Round(message.Timings.Time.TotalMilliseconds, 0);
+            Time = Convert.ToInt64(Math.Round(message.Timings.Time.TotalMilliseconds, 0));
             Request = new Request(message.Response.RequestMessage);
             Response = new Response(message.Response);
         }
@@ -35,7 +35,7 @@ namespace HttpRecorder.Repositories.HAR
         /// <summary>
         /// Gets or sets the total elapsed time of the request in milliseconds.
         /// </summary>
-        public double Time { get; set; }
+        public long Time { get; set; }
 
         /// <summary>
         /// Gets or sets the <see cref="Request"/>.

@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Net.Http;
+using System.Web;
 
 namespace HttpRecorder.Repositories.HAR
 {
@@ -27,6 +27,14 @@ namespace HttpRecorder.Repositories.HAR
             HttpVersion = $"{HTTPVERSIONPREFIX}{request.Version}";
             Method = request.Method.ToString();
             Url = request.RequestUri;
+            if (!string.IsNullOrEmpty(request.RequestUri.Query))
+            {
+                var parsedQueryString = HttpUtility.ParseQueryString(request.RequestUri.Query);
+                foreach (string queryStringKey in parsedQueryString)
+                {
+                    QueryString.Add(new QueryParameter { Name = queryStringKey, Value = parsedQueryString[queryStringKey] });
+                }
+            }
 
             foreach (var header in request.Headers)
             {
@@ -71,11 +79,23 @@ namespace HttpRecorder.Repositories.HAR
         /// <returns>The <see cref="HttpRequestMessage"/> created from this.</returns>
         public HttpRequestMessage ToHttpRequestMessage()
         {
+            var uriBuilder = new UriBuilder(Url);
+            if (QueryString != null && QueryString.Count > 0)
+            {
+                var queryStringParameters = HttpUtility.ParseQueryString(string.Empty);
+                foreach (var queryParameter in QueryString)
+                {
+                    queryStringParameters.Add(queryParameter.Name, queryParameter.Value);
+                }
+
+                uriBuilder.Query = queryStringParameters.ToString();
+            }
+
             var request = new HttpRequestMessage
             {
                 Content = PostData?.ToHttpContent(),
                 Method = new HttpMethod(Method),
-                RequestUri = Url,
+                RequestUri = uriBuilder.Uri,
                 Version = GetVersion(),
             };
             AddHeadersWithoutValidation(request.Headers);
