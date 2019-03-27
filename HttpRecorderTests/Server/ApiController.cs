@@ -1,7 +1,4 @@
-using System;
-using System.IO;
-using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 
 namespace HttpRecorderTests.Server
 {
@@ -10,6 +7,8 @@ namespace HttpRecorderTests.Server
     {
         public const string JsonUri = "json";
         public const string FormDataUri = "formdata";
+        public const string BinaryUri = "binary";
+        public const string StatusCodeUri = "status";
 
         [HttpGet(JsonUri)]
         public IActionResult GetJson([FromQuery] string name = null)
@@ -22,5 +21,13 @@ namespace HttpRecorderTests.Server
         [HttpPost(FormDataUri)]
         public IActionResult PostFormData([FromForm] SampleModel model)
             => Ok(model);
+
+        [HttpGet(BinaryUri)]
+        public IActionResult GetBinary()
+            => PhysicalFile(typeof(ApiController).Assembly.Location, "application/octet-stream");
+
+        [HttpGet(StatusCodeUri)]
+        public IActionResult GetStatus([FromQuery] int? statusCode = 200)
+            => StatusCode(statusCode.Value);
     }
 }

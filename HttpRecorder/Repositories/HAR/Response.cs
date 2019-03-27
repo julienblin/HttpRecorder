@@ -78,7 +78,7 @@ namespace HttpRecorder.Repositories.HAR
         {
             var response = new HttpResponseMessage
             {
-                Content = Content?.ToHttpContent(),
+                Content = Content?.ToHttpContent() ?? new ByteArrayContent(Array.Empty<byte>()),
                 StatusCode = (HttpStatusCode)Status,
                 ReasonPhrase = StatusText,
                 Version = GetVersion(),

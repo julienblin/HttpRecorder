@@ -157,7 +157,57 @@ namespace HttpRecorderTests
                     responses.Should().BeEquivalentTo(passthroughResponses);
                 }
             });
-            }
+        }
+
+        [Fact]
+        public async Task ItShouldGetBinary()
+        {
+            HttpResponseMessage passthroughResponse = null;
+            var expectedBinaryContent = await File.ReadAllBytesAsync(typeof(ApiController).Assembly.Location);
+
+            await ExecuteModeIterations(async (client, mode) =>
+            {
+                var response = await client.GetAsync(ApiController.BinaryUri);
+
+                response.EnsureSuccessStatusCode();
+                if (mode == HttpRecorderMode.Passthrough)
+                {
+                    passthroughResponse = response;
+                    var result = await response.Content.ReadAsByteArrayAsync();
+                    result.Should().BeEquivalentTo(expectedBinaryContent);
+                }
+                else
+                {
+                    response.Should().BeEquivalentTo(passthroughResponse);
+                }
+            });
+        }
+
+        [Theory]
+        [InlineData(202)]
+        [InlineData(301)]
+        [InlineData(303)]
+        [InlineData(404)]
+        [InlineData(500)]
+        [InlineData(502)]
+        public async Task ItShouldGetStatus(int statusCode)
+        {
+            HttpResponseMessage passthroughResponse = null;
+
+            await ExecuteModeIterations(async (client, mode) =>
+            {
+                var response = await client.GetAsync($"{ApiController.StatusCodeUri}?statusCode={statusCode}");
+                response.StatusCode.Should().Be(statusCode);
+                if (mode == HttpRecorderMode.Passthrough)
+                {
+                    passthroughResponse = response;
+                }
+                else
+                {
+                    response.Should().BeEquivalentTo(passthroughResponse);
+                }
+            });
+        }
 
         private async Task ExecuteModeIterations(Func<HttpClient, HttpRecorderMode, Task> test, [CallerMemberName] string testName = "")
         {
