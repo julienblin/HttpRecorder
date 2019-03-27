@@ -24,7 +24,11 @@ namespace HttpRecorder
         /// <summary>
         /// Initializes a new instance of the <see cref="HttpRecorderDelegatingHandler" /> class.
         /// </summary>
-        /// <param name="interactionName">The name of the interaction (path to file record)</param>
+        /// <param name="interactionName">
+        /// The name of the interaction.
+        /// If you use the default <see cref="IInteractionRepository"/>, this will be the path to the HAR file (relative or absolute) and
+        /// if no file extension is provided, .har will be used.
+        /// </param>
         /// <param name="mode">The <see cref="HttpRecorderMode" />. Defaults to <see cref="HttpRecorderMode.Auto" />.</param>
         /// <param name="innerHandler">The inner <see cref="HttpMessageHandler" /> to configure. If not provided, <see cref="HttpClientHandler" /> will be used.</param>
         /// <param name="matcher">

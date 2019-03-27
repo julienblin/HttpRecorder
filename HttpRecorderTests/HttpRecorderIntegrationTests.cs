@@ -159,7 +159,7 @@ namespace HttpRecorderTests
             });
             }
 
-        private async Task ExecuteModeIterations(Func<HttpClient, HttpRecorderMode, Task> test)
+        private async Task ExecuteModeIterations(Func<HttpClient, HttpRecorderMode, Task> test, [CallerMemberName] string testName = "")
         {
             var iterations = new[]
             {
@@ -170,7 +170,7 @@ namespace HttpRecorderTests
             };
             foreach (var mode in iterations)
             {
-                var client = CreateHttpClient(mode);
+                var client = CreateHttpClient(mode, testName);
                 await test(client, mode);
             }
         }
