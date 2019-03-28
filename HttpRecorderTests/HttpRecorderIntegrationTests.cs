@@ -7,10 +7,13 @@ using System.Net.Http.Formatting;
 using System.Net.Http.Headers;
 using System.Runtime.CompilerServices;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using FluentAssertions;
 using HttpRecorder;
+using HttpRecorder.Repositories;
 using HttpRecorderTests.Server;
+using Moq;
 using Xunit;
 
 namespace HttpRecorderTests
@@ -183,6 +186,47 @@ namespace HttpRecorderTests
             });
         }
 
+        [Fact]
+        public async Task ItShouldThrowIfDoesNotFindFile()
+        {
+            const string TestFile = "unknown.file";
+            var client = CreateHttpClient(HttpRecorderMode.Replay, TestFile);
+
+            Func<Task> act = async () => await client.GetAsync(ApiController.JsonUri);
+
+            act.Should().Throw<HttpRecorderException>()
+                .WithMessage($"*{TestFile}*");
+        }
+
+        [Fact]
+        public async Task ItShouldThrowIfFileIsCorrupted()
+        {
+            var file = typeof(HttpRecorderIntegrationTests).Assembly.Location;
+            var client = CreateHttpClient(HttpRecorderMode.Replay, file);
+
+            Func<Task> act = async () => await client.GetAsync(ApiController.JsonUri);
+
+            act.Should().Throw<HttpRecorderException>()
+                .WithMessage($"*{file}*");
+        }
+
+        [Fact]
+        public async Task ItShouldThrowIfNoRequestCanBeMatched()
+        {
+            var repositoryMock = new Mock<IInteractionRepository>();
+            repositoryMock.Setup(x => x.ExistsAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(true);
+            repositoryMock.Setup(x => x.LoadAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+                .Returns<string, CancellationToken>((interactionName, _) => Task.FromResult(new Interaction(interactionName)));
+
+            var client = CreateHttpClient(HttpRecorderMode.Replay, repository: repositoryMock.Object);
+
+            Func<Task> act = async () => await client.GetAsync(ApiController.JsonUri);
+
+            act.Should().Throw<HttpRecorderException>()
+                .WithMessage($"*{ApiController.JsonUri}*");
+        }
+
         [Theory]
         [InlineData(202)]
         [InlineData(301)]
@@ -225,8 +269,11 @@ namespace HttpRecorderTests
             }
         }
 
-        private HttpClient CreateHttpClient(HttpRecorderMode mode, [CallerMemberName] string testName = "")
-            => new HttpClient(new HttpRecorderDelegatingHandler(testName, mode: mode))
+        private HttpClient CreateHttpClient(
+            HttpRecorderMode mode,
+            [CallerMemberName] string testName = "",
+            IInteractionRepository repository = null)
+            => new HttpClient(new HttpRecorderDelegatingHandler(testName, mode: mode, repository: repository))
             {
                 BaseAddress = _fixture.ServerUri,
             };

@@ -1,4 +1,5 @@
-﻿using System.IO;
+﻿using System;
+using System.IO;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -33,26 +34,40 @@ namespace HttpRecorder.Repositories.HAR
         /// <inheritdoc />
         public Task<Interaction> LoadAsync(string interactionName, CancellationToken cancellationToken = default)
         {
-            var archive = JsonConvert.DeserializeObject<HttpArchive>(
+            try
+            {
+                var archive = JsonConvert.DeserializeObject<HttpArchive>(
                 File.ReadAllText(GetFilePath(interactionName), Encoding.UTF8),
                 _jsonSettings);
 
-            return Task.FromResult(archive.ToInteraction(interactionName));
+                return Task.FromResult(archive.ToInteraction(interactionName));
+            }
+            catch (Exception ex)
+            {
+                throw new HttpRecorderException($"Error while loading file {GetFilePath(interactionName)}: {ex.Message}", ex);
+            }
         }
 
         /// <inheritdoc />
         public Task<Interaction> StoreAsync(Interaction interaction, CancellationToken cancellationToken = default)
         {
-            var archive = new HttpArchive(interaction);
-            var archiveDirectory = Path.GetDirectoryName(GetFilePath(interaction.Name));
-            if (!string.IsNullOrWhiteSpace(archiveDirectory) && !Directory.Exists(archiveDirectory))
+            try
             {
-                Directory.CreateDirectory(archiveDirectory);
+                var archive = new HttpArchive(interaction);
+                var archiveDirectory = Path.GetDirectoryName(GetFilePath(interaction.Name));
+                if (!string.IsNullOrWhiteSpace(archiveDirectory) && !Directory.Exists(archiveDirectory))
+                {
+                    Directory.CreateDirectory(archiveDirectory);
+                }
+
+                File.WriteAllText(GetFilePath(interaction.Name), JsonConvert.SerializeObject(archive, Formatting.Indented, _jsonSettings));
+
+                return Task.FromResult(archive.ToInteraction(interaction.Name));
             }
-
-            File.WriteAllText(GetFilePath(interaction.Name), JsonConvert.SerializeObject(archive, Formatting.Indented, _jsonSettings));
-
-            return Task.FromResult(archive.ToInteraction(interaction.Name));
+            catch (Exception ex)
+            {
+                throw new HttpRecorderException($"Error while writing file {GetFilePath(interaction.Name)}: {ex.Message}", ex);
+            }
         }
 
         private string GetFilePath(string interactionName)
