@@ -33,8 +33,8 @@ namespace HttpRecorder
         /// <param name="innerHandler">The inner <see cref="HttpMessageHandler" /> to configure. If not provided, <see cref="HttpClientHandler" /> will be used.</param>
         /// <param name="matcher">
         /// The <see cref="IRequestMatcher"/> to use to match interactions with incoming <see cref="HttpRequestMessage"/>.
-        /// Defaults to matching by <see cref="HttpMethod"/> and <see cref="HttpRequestMessage.RequestUri"/>.
-        /// <see cref="SequentialMatcher.ByHttpMethod"/> and <see cref="SequentialMatcher.ByRequestUri"/>.
+        /// Defaults to matching Once by <see cref="HttpMethod"/> and <see cref="HttpRequestMessage.RequestUri"/>.
+        /// <see cref="RulesMatcher.ByHttpMethod"/> and <see cref="RulesMatcher.ByRequestUri"/>.
         /// </param>
         /// <param name="repository">
         /// The <see cref="IInteractionRepository"/> to use to read/write the interaction.
@@ -50,7 +50,7 @@ namespace HttpRecorder
         {
             InteractionName = interactionName;
             Mode = mode;
-            _matcher = matcher ?? SequentialMatcher.Match.ByHttpMethod().ByRequestUri();
+            _matcher = matcher ?? RulesMatcher.MatchOnce.ByHttpMethod().ByRequestUri();
             _repository = repository ?? new HttpArchiveInteractionRepository();
         }
 

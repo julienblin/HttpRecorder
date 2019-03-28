@@ -9,32 +9,30 @@ using Xunit;
 
 namespace HttpRecorderTests.Matchers
 {
-    public class SequentialMatcherUnitTests
+    public class RulesMatcherUnitTests
     {
         [Fact]
-        public void ItShouldMatchInSequence()
+        public void ItShouldMatchOnce()
         {
             var interaction = BuildInteraction(
                 new HttpRequestMessage { RequestUri = new Uri("http://first") },
                 new HttpRequestMessage { RequestUri = new Uri("http://second") });
             var request = new HttpRequestMessage();
 
-            var matcher = SequentialMatcher.Match;
+            var matcher = RulesMatcher.MatchOnce;
 
-            var result = ((IRequestMatcher)matcher).Match(request, interaction);
+            var result = matcher.Match(request, interaction);
 
             result.Response.RequestMessage.RequestUri.Should().BeEquivalentTo(new Uri("http://first"));
-            interaction.Messages.Should().HaveCount(1);
 
-            result = ((IRequestMatcher)matcher).Match(request, interaction);
+            result = matcher.Match(request, interaction);
 
             result.Should().NotBeNull();
             result.Response.RequestMessage.RequestUri.Should().BeEquivalentTo(new Uri("http://second"));
-            interaction.Messages.Should().HaveCount(0);
         }
 
         [Fact]
-        public void ItShouldMatchByHttpMethod()
+        public void ItShouldMatchOnceByHttpMethod()
         {
             var interaction = BuildInteraction(
                 new HttpRequestMessage(),
@@ -42,18 +40,17 @@ namespace HttpRecorderTests.Matchers
                 new HttpRequestMessage { RequestUri = new Uri("http://second"), Method = HttpMethod.Head });
             var request = new HttpRequestMessage { Method = HttpMethod.Head };
 
-            var matcher = SequentialMatcher.Match
+            var matcher = RulesMatcher.MatchOnce
                 .ByHttpMethod();
 
-            var result = ((IRequestMatcher)matcher).Match(request, interaction);
+            var result = matcher.Match(request, interaction);
 
             result.Should().NotBeNull();
             result.Response.RequestMessage.Method.Should().BeEquivalentTo(HttpMethod.Head);
-            interaction.Messages.Should().HaveCount(2);
         }
 
         [Fact]
-        public void ItShouldMatchByCompleteRequestUri()
+        public void ItShouldMatchOnceByCompleteRequestUri()
         {
             var interaction = BuildInteraction(
                 new HttpRequestMessage(),
@@ -61,18 +58,17 @@ namespace HttpRecorderTests.Matchers
                 new HttpRequestMessage { RequestUri = new Uri("http://first?name=bar") });
             var request = new HttpRequestMessage { RequestUri = new Uri("http://first?name=bar") };
 
-            var matcher = SequentialMatcher.Match
+            var matcher = RulesMatcher.MatchOnce
                 .ByRequestUri();
 
-            var result = ((IRequestMatcher)matcher).Match(request, interaction);
+            var result = matcher.Match(request, interaction);
 
             result.Should().NotBeNull();
             result.Response.RequestMessage.RequestUri.Should().BeEquivalentTo(new Uri("http://first?name=bar"));
-            interaction.Messages.Should().HaveCount(2);
         }
 
         [Fact]
-        public void ItShouldMatchByPartialRequestUri()
+        public void ItShouldMatchOnceByPartialRequestUri()
         {
             var interaction = BuildInteraction(
                 new HttpRequestMessage(),
@@ -80,18 +76,17 @@ namespace HttpRecorderTests.Matchers
                 new HttpRequestMessage { RequestUri = new Uri("http://first?name=bar") });
             var request = new HttpRequestMessage { RequestUri = new Uri("http://first?name=bar") };
 
-            var matcher = SequentialMatcher.Match
+            var matcher = RulesMatcher.MatchOnce
                 .ByRequestUri(UriPartial.Path);
 
-            var result = ((IRequestMatcher)matcher).Match(request, interaction);
+            var result = matcher.Match(request, interaction);
 
             result.Should().NotBeNull();
             result.Response.RequestMessage.RequestUri.Should().BeEquivalentTo(new Uri("http://first?name=foo"));
-            interaction.Messages.Should().HaveCount(2);
         }
 
         [Fact]
-        public void ItShouldMatchByHeader()
+        public void ItShouldMatchOnceByHeader()
         {
             var headerName = "If-None-Match";
             var firstRequest = new HttpRequestMessage();
@@ -102,18 +97,17 @@ namespace HttpRecorderTests.Matchers
             var request = new HttpRequestMessage();
             request.Headers.TryAddWithoutValidation(headerName, "second");
 
-            var matcher = SequentialMatcher.Match
+            var matcher = RulesMatcher.MatchOnce
                 .ByHeader(headerName);
 
-            var result = ((IRequestMatcher)matcher).Match(request, interaction);
+            var result = matcher.Match(request, interaction);
 
             result.Should().NotBeNull();
             result.Response.RequestMessage.Headers.IfNoneMatch.ToString().Should().Be("second");
-            interaction.Messages.Should().HaveCount(2);
         }
 
         [Fact]
-        public void ItShouldMatchByContent()
+        public void ItShouldMatchOnceByContent()
         {
             var firstContent = new ByteArrayContent(new byte[] { 0, 1, 2, 3 });
             var secondContent = new ByteArrayContent(new byte[] { 3, 2, 1, 0 });
@@ -123,18 +117,17 @@ namespace HttpRecorderTests.Matchers
                 new HttpRequestMessage { Content = secondContent });
             var request = new HttpRequestMessage { Content = secondContent };
 
-            var matcher = SequentialMatcher.Match
+            var matcher = RulesMatcher.MatchOnce
                 .ByContent();
 
-            var result = ((IRequestMatcher)matcher).Match(request, interaction);
+            var result = matcher.Match(request, interaction);
 
             result.Should().NotBeNull();
             result.Response.RequestMessage.Content.Should().BeEquivalentTo(secondContent);
-            interaction.Messages.Should().HaveCount(2);
         }
 
         [Fact]
-        public void ItShouldMatchByJsonContent()
+        public void ItShouldMatchOnceByJsonContent()
         {
             var firstModel = new Model { Name = "first" };
             var secondModel = new Model { Name = "second" };
@@ -147,14 +140,58 @@ namespace HttpRecorderTests.Matchers
                 new HttpRequestMessage { Content = secondContent });
             var request = new HttpRequestMessage { Content = secondContent };
 
-            var matcher = SequentialMatcher.Match
+            var matcher = RulesMatcher.MatchOnce
                 .ByJsonContent<Model>();
 
-            var result = ((IRequestMatcher)matcher).Match(request, interaction);
+            var result = matcher.Match(request, interaction);
 
             result.Should().NotBeNull();
             result.Response.RequestMessage.Content.Should().BeEquivalentTo(secondContent);
-            interaction.Messages.Should().HaveCount(2);
+        }
+
+        [Fact]
+        public void ItShouldWorkWithNoMatch()
+        {
+            var interaction = BuildInteraction();
+            var request = new HttpRequestMessage();
+
+            var matcher = RulesMatcher.MatchOnce
+                .ByHttpMethod();
+
+            var result = matcher.Match(request, interaction);
+            result.Should().BeNull();
+        }
+
+        [Fact]
+        public void ItShouldMatchMultiple()
+        {
+            var interaction = BuildInteraction(
+                new HttpRequestMessage());
+            var request = new HttpRequestMessage();
+
+            var matcher = RulesMatcher.MatchMultiple;
+
+            var result = matcher.Match(request, interaction);
+            result.Should().NotBeNull();
+
+            result = matcher.Match(request, interaction);
+            result.Should().NotBeNull();
+        }
+
+        [Fact]
+        public void ItShouldMatchWithCombination()
+        {
+            var interaction = BuildInteraction(
+                new HttpRequestMessage { Method = HttpMethod.Get, RequestUri = new Uri("http://first") },
+                new HttpRequestMessage { Method = HttpMethod.Get, RequestUri = new Uri("http://second") });
+            var request = new HttpRequestMessage { Method = HttpMethod.Get, RequestUri = new Uri("http://second") };
+
+            var matcher = RulesMatcher.MatchOnce
+                .ByHttpMethod()
+                .ByRequestUri();
+
+            var result = matcher.Match(request, interaction);
+            result.Response.RequestMessage.RequestUri.Should().BeEquivalentTo(new Uri("http://second"));
         }
 
         private Interaction BuildInteraction(params HttpRequestMessage[] requests)

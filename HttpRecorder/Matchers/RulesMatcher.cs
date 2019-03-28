@@ -9,27 +9,39 @@ namespace HttpRecorder.Matchers
 {
     /// <summary>
     /// <see cref="IRequestMatcher"/> implementation that matches <see cref="HttpRequestMessage"/>
-    /// in sequence by removing used <see cref="InteractionMessage"/> from the <see cref="Interaction"/>.
     /// Additional rules can be specified.
     /// </summary>
-    public sealed class SequentialMatcher : IRequestMatcher
+    public class RulesMatcher : IRequestMatcher
     {
         private readonly IEnumerable<Func<HttpRequestMessage, InteractionMessage, bool>> _rules;
+        private readonly bool _matchOnce;
+        private readonly IList<InteractionMessage> _matchedInteractionMessages = new List<InteractionMessage>();
 
-        private SequentialMatcher(IEnumerable<Func<HttpRequestMessage, InteractionMessage, bool>> rules = null)
+        private RulesMatcher(IEnumerable<Func<HttpRequestMessage, InteractionMessage, bool>> rules = null, bool matchOnce = true)
         {
             _rules = rules ?? new List<Func<HttpRequestMessage, InteractionMessage, bool>>();
+            _matchOnce = matchOnce;
         }
 
         /// <summary>
-        /// Gets a new <see cref="SequentialMatcher"/>.
+        /// Gets a new <see cref="RulesMatcher"/> that matches request in sequence and only once.
         /// </summary>
-        public static SequentialMatcher Match { get => new SequentialMatcher(); }
+        public static RulesMatcher MatchOnce { get => new RulesMatcher(Enumerable.Empty<Func<HttpRequestMessage, InteractionMessage, bool>>(), true); }
+
+        /// <summary>
+        /// Gets a new <see cref="RulesMatcher"/> that matches request in sequence and multiple times.
+        /// </summary>
+        public static RulesMatcher MatchMultiple { get => new RulesMatcher(Enumerable.Empty<Func<HttpRequestMessage, InteractionMessage, bool>>(), false); }
 
         /// <inheritdoc />
-        InteractionMessage IRequestMatcher.Match(HttpRequestMessage request, Interaction interaction)
+        public InteractionMessage Match(HttpRequestMessage request, Interaction interaction)
         {
             IEnumerable<InteractionMessage> query = interaction.Messages;
+
+            if (_matchOnce)
+            {
+                query = query.Where(x => !_matchedInteractionMessages.Contains(x));
+            }
 
             foreach (var rule in _rules)
             {
@@ -37,36 +49,36 @@ namespace HttpRecorder.Matchers
             }
 
             var matchedInteraction = query.FirstOrDefault();
-            if (matchedInteraction != null)
+
+            if (matchedInteraction != null && _matchOnce)
             {
-                interaction.Messages.Remove(matchedInteraction);
-                return matchedInteraction;
+                _matchedInteractionMessages.Add(matchedInteraction);
             }
 
-            return null;
+            return matchedInteraction;
         }
 
         /// <summary>
-        /// Returns a new <see cref="SequentialMatcher"/> with the added <paramref name="rule"/>.
+        /// Returns a new <see cref="RulesMatcher"/> with the added <paramref name="rule"/>.
         /// </summary>
         /// <param name="rule">The rule to add.</param>
-        /// <returns>A new <see cref="SequentialMatcher"/>.</returns>
-        public SequentialMatcher By(Func<HttpRequestMessage, InteractionMessage, bool> rule)
-            => new SequentialMatcher(_rules.Concat(new[] { rule }));
+        /// <returns>A new <see cref="RulesMatcher"/>.</returns>
+        public RulesMatcher By(Func<HttpRequestMessage, InteractionMessage, bool> rule)
+            => new RulesMatcher(_rules.Concat(new[] { rule }), _matchOnce);
 
         /// <summary>
         /// Adds a rule that matches by <see cref="HttpMethod"/>.
         /// </summary>
-        /// <returns>A new <see cref="SequentialMatcher"/></returns>
-        public SequentialMatcher ByHttpMethod()
+        /// <returns>A new <see cref="RulesMatcher"/></returns>
+        public RulesMatcher ByHttpMethod()
             => By((request, message) => request.Method == message.Response.RequestMessage.Method);
 
         /// <summary>
         /// Adds a rule that matches by <see cref="HttpRequestMessage.RequestUri"/>.
         /// </summary>
         /// <param name="part">Specify a <see cref="UriPartial"/> to restrict the matching to a subset of the request <see cref="Uri"/>.</param>
-        /// <returns>A new <see cref="SequentialMatcher"/></returns>
-        public SequentialMatcher ByRequestUri(UriPartial part = UriPartial.Query)
+        /// <returns>A new <see cref="RulesMatcher"/></returns>
+        public RulesMatcher ByRequestUri(UriPartial part = UriPartial.Query)
             => By((request, message) => string.Equals(request.RequestUri?.GetLeftPart(part), message.Response.RequestMessage.RequestUri?.GetLeftPart(part), StringComparison.InvariantCulture));
 
         /// <summary>
@@ -74,8 +86,8 @@ namespace HttpRecorder.Matchers
         /// </summary>
         /// <param name="headerName">The name of the header to compare values from.</param>
         /// <param name="stringComparison">Allows customization of the string comparison.</param>
-        /// <returns>A new <see cref="SequentialMatcher"/></returns>
-        public SequentialMatcher ByHeader(string headerName, StringComparison stringComparison = StringComparison.InvariantCultureIgnoreCase)
+        /// <returns>A new <see cref="RulesMatcher"/></returns>
+        public RulesMatcher ByHeader(string headerName, StringComparison stringComparison = StringComparison.InvariantCultureIgnoreCase)
             => By((request, message) =>
             {
                 string requestHeader = null;
@@ -107,8 +119,8 @@ namespace HttpRecorder.Matchers
         /// <summary>
         /// Adds a rule that matches by binary comparing the <see cref="HttpRequestMessage.Content"/>.
         /// </summary>
-        /// <returns>A new <see cref="SequentialMatcher"/></returns>
-        public SequentialMatcher ByContent()
+        /// <returns>A new <see cref="RulesMatcher"/></returns>
+        public RulesMatcher ByContent()
             => By((request, message) => StructuralComparisons.StructuralComparer.Compare(
                     request.Content?.ReadAsByteArrayAsync()?.Result,
                     message.Response.RequestMessage.Content?.ReadAsByteArrayAsync()?.Result) == 0);
@@ -119,8 +131,8 @@ namespace HttpRecorder.Matchers
         /// <typeparam name="T">The json object type.</typeparam>
         /// <param name="equalityComparer"><see cref="IEqualityComparer{T}"/> to use. Defaults to <see cref="EqualityComparer{T}.Default"/>.</param>
         /// <param name="jsonSerializerSettings">The <see cref="JsonSerializerSettings"/> to use.</param>
-        /// <returns>A new <see cref="SequentialMatcher"/></returns>
-        public SequentialMatcher ByJsonContent<T>(
+        /// <returns>A new <see cref="RulesMatcher"/></returns>
+        public RulesMatcher ByJsonContent<T>(
             IEqualityComparer<T> equalityComparer = null,
             JsonSerializerSettings jsonSerializerSettings = null)
             => By((request, message) =>
