@@ -102,14 +102,24 @@ matcher = RulesMatcher.MatchMultiple
     .ByRequestUri(UriPartial.Path)
     .ByHeader("X-API-Key");
 
+// Custom matching rule using the provided incoming request
+// and a recorded interaction message.
+matcher = RulesMatcher.MatchOnce.By((request, message) => ...);
+
 var client = new HttpClient(new HttpRecorderDelegatingHandler("...", matcher: matcher));
 ```````
 
+Additional customization can be done by providing a custom `IRequestMatcher` implementation.
+
 ###Record interaction in external tools
 
+Interaction files can be recorded using your favorite tool (e.g. [Fiddler](https://www.telerik.com/fiddler), Google Chrome Inspector, ...).
 
+You only have to export it using the HAR/HTTP Archive format. They can then be used as-is as a test fixture that will be loaded by the `HttpRecorderDelegatingHandler`.
 
 ### Customize the storage
+
+Reading/writing the interaction can be customized by providing a custom `IInteractionRepository` implementation.
 
 ## Inspiration
 
