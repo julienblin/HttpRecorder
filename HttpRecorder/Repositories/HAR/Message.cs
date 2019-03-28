@@ -47,6 +47,11 @@ namespace HttpRecorder.Repositories.HAR
         /// <returns>The <see cref="Version"/>.</returns>
         protected Version GetVersion()
         {
+            if (string.IsNullOrEmpty(HttpVersion))
+            {
+                return new Version();
+            }
+
             var version = HttpVersion;
             if (version.StartsWith(HTTPVERSIONPREFIX, StringComparison.InvariantCultureIgnoreCase))
             {

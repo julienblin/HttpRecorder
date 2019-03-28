@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Net.Http;
 using System.Threading;
@@ -89,6 +90,13 @@ namespace HttpRecorder
                     if (interactionMessage == null)
                     {
                         throw new HttpRecorderException($"Unable to find a matching interaction for request {request.Method} {request.RequestUri}.");
+                    }
+
+                    // We do reset the stream in case it needs to be re-read.
+                    if (interactionMessage.Response.Content != null)
+                    {
+                        var stream = await interactionMessage.Response.Content.ReadAsStreamAsync();
+                        stream.Seek(0, SeekOrigin.Begin);
                     }
 
                     return interactionMessage.Response;
