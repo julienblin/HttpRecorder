@@ -15,7 +15,7 @@ namespace HttpRecorder
     /// </summary>
     public class HttpRecorderDelegatingHandler : DelegatingHandler
     {
-        private readonly Func<HttpRequestMessage, Interaction, InteractionMessage> _matcher;
+        private readonly IRequestMatcher _matcher;
         private readonly IInteractionRepository _repository;
 
         private readonly SemaphoreSlim _interactionLock = new SemaphoreSlim(1, 1);
@@ -32,8 +32,9 @@ namespace HttpRecorder
         /// <param name="mode">The <see cref="HttpRecorderMode" />. Defaults to <see cref="HttpRecorderMode.Auto" />.</param>
         /// <param name="innerHandler">The inner <see cref="HttpMessageHandler" /> to configure. If not provided, <see cref="HttpClientHandler" /> will be used.</param>
         /// <param name="matcher">
-        /// The function to use to match interactions with incoming <see cref="HttpRequestMessage"/>.
-        /// Defaults to matching by <see cref="HttpMethod"/> and <see cref="HttpRequestMessage.RequestUri"/> - <see cref="DefaultMatcher"/>.
+        /// The <see cref="IRequestMatcher"/> to use to match interactions with incoming <see cref="HttpRequestMessage"/>.
+        /// Defaults to matching by <see cref="HttpMethod"/> and <see cref="HttpRequestMessage.RequestUri"/>.
+        /// <see cref="SequentialMatcher.ByHttpMethod"/> and <see cref="SequentialMatcher.ByRequestUri"/>.
         /// </param>
         /// <param name="repository">
         /// The <see cref="IInteractionRepository"/> to use to read/write the interaction.
@@ -43,13 +44,13 @@ namespace HttpRecorder
             string interactionName,
             HttpRecorderMode mode = HttpRecorderMode.Auto,
             HttpMessageHandler innerHandler = null,
-            Func<HttpRequestMessage, Interaction, InteractionMessage> matcher = null,
+            IRequestMatcher matcher = null,
             IInteractionRepository repository = null)
             : base(innerHandler ?? new HttpClientHandler())
         {
             InteractionName = interactionName;
             Mode = mode;
-            _matcher = matcher ?? DefaultMatcher.Matcher;
+            _matcher = matcher ?? SequentialMatcher.Match.ByHttpMethod().ByRequestUri();
             _repository = repository ?? new HttpArchiveInteractionRepository();
         }
 
@@ -84,7 +85,7 @@ namespace HttpRecorder
                         _interaction = await _repository.LoadAsync(InteractionName, cancellationToken);
                     }
 
-                    var interactionMessage = _matcher(request, _interaction);
+                    var interactionMessage = _matcher.Match(request, _interaction);
                     if (interactionMessage == null)
                     {
                         throw new HttpRecorderException($"Unable to find a matching interaction for request {request.Method} {request.RequestUri}.");
