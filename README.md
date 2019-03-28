@@ -111,7 +111,7 @@ var client = new HttpClient(new HttpRecorderDelegatingHandler("...", matcher: ma
 
 Additional customization can be done by providing a custom `IRequestMatcher` implementation.
 
-###Record interaction in external tools
+### Record interaction in external tools
 
 Interaction files can be recorded using your favorite tool (e.g. [Fiddler](https://www.telerik.com/fiddler), Google Chrome Inspector, ...).
 
