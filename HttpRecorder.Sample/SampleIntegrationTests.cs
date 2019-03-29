@@ -5,7 +5,6 @@ using System.Net.Http;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using HttpRecorder;
-using HttpRecorder.Matchers;
 using Xunit;
 
 namespace Sample

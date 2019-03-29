@@ -1,12 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Net.Http;
-using System.Net.Http.Formatting;
-using System.Net.Http.Headers;
 using System.Runtime.CompilerServices;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using FluentAssertions;
@@ -15,10 +11,14 @@ using HttpRecorder.Repositories;
 using HttpRecorderTests.Server;
 using Moq;
 using Xunit;
-using Xunit.Sdk;
 
 namespace HttpRecorderTests
 {
+    /// <summary>
+    /// <see cref="HttpRecorderDelegatingHandler"/> integration tests.
+    /// We do exclude the response Date headers from comparison as not to get skewed
+    /// by timing issues.
+    /// </summary>
     [Collection(ServerCollection.Name)]
     public class HttpRecorderIntegrationTests
     {
@@ -39,6 +39,7 @@ namespace HttpRecorderTests
                 var response = await client.GetAsync(ApiController.JsonUri);
 
                 response.EnsureSuccessStatusCode();
+                response.Headers.Remove("Date");
                 if (mode == HttpRecorderMode.Passthrough)
                 {
                     passthroughResponse = response;
@@ -63,6 +64,7 @@ namespace HttpRecorderTests
                 var response = await client.GetAsync($"{ApiController.JsonUri}?name={name}");
 
                 response.EnsureSuccessStatusCode();
+                response.Headers.Remove("Date");
                 if (mode == HttpRecorderMode.Passthrough)
                 {
                     passthroughResponse = response;
@@ -85,7 +87,9 @@ namespace HttpRecorderTests
             await ExecuteModeIterations(async (client, mode) =>
             {
                 var response = await client.PostAsJsonAsync(ApiController.JsonUri, sampleModel);
+
                 response.EnsureSuccessStatusCode();
+                response.Headers.Remove("Date");
 
                 if (mode == HttpRecorderMode.Passthrough)
                 {
@@ -114,7 +118,9 @@ namespace HttpRecorderTests
                 });
 
                 var response = await client.PostAsync(ApiController.FormDataUri, formContent);
+
                 response.EnsureSuccessStatusCode();
+                response.Headers.Remove("Date");
                 if (mode == HttpRecorderMode.Passthrough)
                 {
                     passthroughResponse = response;
@@ -144,6 +150,10 @@ namespace HttpRecorderTests
                 }
 
                 var responses = await Task.WhenAll(tasks);
+                foreach (var response in responses)
+                {
+                    response.Headers.Remove("Date");
+                }
 
                 if (mode == HttpRecorderMode.Passthrough)
                 {
@@ -174,6 +184,8 @@ namespace HttpRecorderTests
                 var response = await client.GetAsync(ApiController.BinaryUri);
 
                 response.EnsureSuccessStatusCode();
+                response.Headers.Remove("Date");
+
                 if (mode == HttpRecorderMode.Passthrough)
                 {
                     passthroughResponse = response;
@@ -182,18 +194,7 @@ namespace HttpRecorderTests
                 }
                 else
                 {
-                    try
-                    {
-                        response.Should().BeEquivalentTo(passthroughResponse);
-                    }
-                    catch (XunitException ex)
-                    {
-                        // We do filter out some issues that can happen on request headers du to the larger size of the request.
-                        if (!ex.Message.Contains("GMT", StringComparison.InvariantCulture))
-                        {
-                            throw;
-                        }
-                    }
+                    response.Should().BeEquivalentTo(passthroughResponse);
                 }
             });
         }
@@ -254,6 +255,8 @@ namespace HttpRecorderTests
             {
                 var response = await client.GetAsync($"{ApiController.StatusCodeUri}?statusCode={statusCode}");
                 response.StatusCode.Should().Be(statusCode);
+                response.Headers.Remove("Date");
+
                 if (mode == HttpRecorderMode.Passthrough)
                 {
                     passthroughResponse = response;

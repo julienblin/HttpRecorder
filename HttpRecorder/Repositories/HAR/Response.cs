@@ -86,12 +86,6 @@ namespace HttpRecorder.Repositories.HAR
             AddHeadersWithoutValidation(response.Headers);
             AddHeadersWithoutValidation(response.Content?.Headers);
 
-            // The HTTP Client is adding the content length header on HttpConnectionResponseContent event when the server does not have a header.
-            if (response.Content != null && response.Content.Headers?.ContentLength == null && BodySize > 0)
-            {
-                response.Content.Headers.ContentLength = BodySize;
-            }
-
             return response;
         }
     }

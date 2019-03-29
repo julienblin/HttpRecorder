@@ -92,33 +92,25 @@ namespace HttpRecorder
                         throw new HttpRecorderException($"Unable to find a matching interaction for request {request.Method} {request.RequestUri}.");
                     }
 
-                    // We do reset the stream in case it needs to be re-read.
-                    if (interactionMessage.Response.Content != null)
-                    {
-                        var stream = await interactionMessage.Response.Content.ReadAsStreamAsync();
-                        stream.Seek(0, SeekOrigin.Begin);
-                    }
-
-                    return interactionMessage.Response;
+                    return await PostProcessResponse(interactionMessage.Response);
                 }
 
                 var start = DateTimeOffset.Now;
                 var sw = Stopwatch.StartNew();
                 var innerResponse = await base.SendAsync(request, cancellationToken);
                 sw.Stop();
-                if (_interaction == null)
-                {
-                    _interaction = new Interaction(InteractionName);
-                }
 
-                _interaction.Messages.Add(
-                    new InteractionMessage(
+                var newInteractionMessage = new InteractionMessage(
                         innerResponse,
-                        new InteractionMessageTimings(start, sw.Elapsed)));
-                _interaction = await _repository.StoreAsync(_interaction, cancellationToken);
+                        new InteractionMessageTimings(start, sw.Elapsed));
 
-                // We do intentionally return the round-triped (from repository) interaction.
-                return _interaction.Messages.Last().Response;
+                _interaction = new Interaction(
+                    InteractionName,
+                    _interaction == null ? new[] { newInteractionMessage } : _interaction.Messages.Append(newInteractionMessage));
+
+                await _repository.StoreAsync(_interaction, cancellationToken);
+
+                return await PostProcessResponse(newInteractionMessage.Response);
             }
             finally
             {
@@ -141,6 +133,28 @@ namespace HttpRecorder
             }
 
             return Mode;
+        }
+
+        /// <summary>
+        /// Custom processing on <see cref="HttpResponseMessage"/> to better simulate a real response from the network
+        /// and allow replayability.
+        /// </summary>
+        /// <param name="response">The <see cref="HttpResponseMessage"/>.</param>
+        /// <returns>The <see cref="HttpResponseMessage"/> returned as convenience.</returns>
+        private async Task<HttpResponseMessage> PostProcessResponse(HttpResponseMessage response)
+        {
+            if (response.Content != null)
+            {
+                var stream = await response.Content.ReadAsStreamAsync();
+
+                // The HTTP Client is adding the content length header on HttpConnectionResponseContent even when the server does not have a header.
+                response.Content.Headers.ContentLength = stream.Length;
+
+                // We do reset the stream in case it needs to be re-read.
+                stream.Seek(0, SeekOrigin.Begin);
+            }
+
+            return response;
         }
     }
 }

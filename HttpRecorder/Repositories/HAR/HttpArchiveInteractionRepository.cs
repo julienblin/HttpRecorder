@@ -49,7 +49,7 @@ namespace HttpRecorder.Repositories.HAR
         }
 
         /// <inheritdoc />
-        public Task<Interaction> StoreAsync(Interaction interaction, CancellationToken cancellationToken = default)
+        public Task StoreAsync(Interaction interaction, CancellationToken cancellationToken = default)
         {
             try
             {
@@ -62,7 +62,7 @@ namespace HttpRecorder.Repositories.HAR
 
                 File.WriteAllText(GetFilePath(interaction.Name), JsonConvert.SerializeObject(archive, Formatting.Indented, _jsonSettings));
 
-                return Task.FromResult(archive.ToInteraction(interaction.Name));
+                return Task.CompletedTask;
             }
             catch (Exception ex)
             {

@@ -18,7 +18,7 @@ namespace HttpRecorder
             IEnumerable<InteractionMessage> messages = null)
         {
             Name = name;
-            Messages = (messages ?? Enumerable.Empty<InteractionMessage>()).ToList();
+            Messages = (messages ?? Enumerable.Empty<InteractionMessage>()).ToList().AsReadOnly();
         }
 
         /// <summary>
@@ -29,6 +29,6 @@ namespace HttpRecorder
         /// <summary>
         /// Gets the <see cref="InteractionMessage"/> list.
         /// </summary>
-        public IList<InteractionMessage> Messages { get; }
+        public IReadOnlyList<InteractionMessage> Messages { get; }
     }
 }
