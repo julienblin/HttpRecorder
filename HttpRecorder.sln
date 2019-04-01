@@ -5,7 +5,7 @@ VisualStudioVersion = 15.0.26124.0
 MinimumVisualStudioVersion = 15.0.26124.0
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "HttpRecorder", "HttpRecorder\HttpRecorder.csproj", "{ABB84D2D-341F-437B-AD54-DB88A4C5F998}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "HttpRecorderTests", "HttpRecorderTests\HttpRecorderTests.csproj", "{5CEB6088-4ACA-467D-8B76-B79F134D2B5C}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "HttpRecorder.Tests", "HttpRecorder.Tests\HttpRecorder.Tests.csproj", "{5CEB6088-4ACA-467D-8B76-B79F134D2B5C}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{B37AA433-2E55-4916-971F-04A80C987AE6}"
 	ProjectSection(SolutionItems) = preProject

@@ -6,13 +6,12 @@ using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 using FluentAssertions;
-using HttpRecorder;
 using HttpRecorder.Repositories;
-using HttpRecorderTests.Server;
+using HttpRecorder.Tests.Server;
 using Moq;
 using Xunit;
 
-namespace HttpRecorderTests
+namespace HttpRecorder.Tests
 {
     /// <summary>
     /// <see cref="HttpRecorderDelegatingHandler"/> integration tests.

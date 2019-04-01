@@ -1,6 +1,6 @@
 using Xunit;
 
-namespace HttpRecorderTests
+namespace HttpRecorder.Tests
 {
     [CollectionDefinition(ServerCollection.Name)]
     public class ServerCollection : ICollectionFixture<ServerFixture>

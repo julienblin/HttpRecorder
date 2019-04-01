@@ -1,4 +1,4 @@
-namespace HttpRecorderTests.Server
+namespace HttpRecorder.Tests.Server
 {
     public class SampleModel
     {
