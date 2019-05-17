@@ -20,6 +20,7 @@ namespace HttpRecorder
         private readonly IInteractionRepository _repository;
 
         private readonly SemaphoreSlim _interactionLock = new SemaphoreSlim(1, 1);
+        private HttpRecorderMode? _executionMode;
         private Interaction _interaction;
 
         /// <summary>
@@ -77,9 +78,9 @@ namespace HttpRecorder
             await _interactionLock.WaitAsync();
             try
             {
-                var executionMode = await ResolveRecorderMode(cancellationToken);
+                await ResolveExecutionMode(cancellationToken);
 
-                if (executionMode == HttpRecorderMode.Replay)
+                if (_executionMode == HttpRecorderMode.Replay)
                 {
                     if (_interaction == null)
                     {
@@ -119,20 +120,26 @@ namespace HttpRecorder
         }
 
         /// <summary>
-        /// Resolves <see cref="HttpRecorderMode.Auto"/>, if this is the case, otherwise returns the current <see cref="Mode"/>.
+        /// Resolves the current <see cref="_executionMode"/>.
+        /// Handles <see cref="HttpRecorderMode.Auto"/>, if this is the case, otherwise uses the current <see cref="Mode"/>.
         /// </summary>
         /// <param name="cancellationToken">A cancellation token to cancel operation.</param>
-        /// <returns>The resolve <see cref="HttpRecorderMode"/> guaranteed to never be <see cref="HttpRecorderMode.Auto"/>.</returns>
-        private async Task<HttpRecorderMode> ResolveRecorderMode(CancellationToken cancellationToken)
+        /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
+        private async Task ResolveExecutionMode(CancellationToken cancellationToken)
         {
-            if (Mode == HttpRecorderMode.Auto)
+            if (!_executionMode.HasValue)
             {
-                return (await _repository.ExistsAsync(InteractionName, cancellationToken))
-                    ? HttpRecorderMode.Replay
-                    : HttpRecorderMode.Record;
+                if (Mode == HttpRecorderMode.Auto)
+                {
+                    _executionMode = (await _repository.ExistsAsync(InteractionName, cancellationToken))
+                        ? HttpRecorderMode.Replay
+                        : HttpRecorderMode.Record;
+                }
+                else
+                {
+                    _executionMode = Mode;
+                }
             }
-
-            return Mode;
         }
 
         /// <summary>
@@ -146,12 +153,14 @@ namespace HttpRecorder
             if (response.Content != null)
             {
                 var stream = await response.Content.ReadAsStreamAsync();
+                if (stream.CanSeek)
+                {
+                    // The HTTP Client is adding the content length header on HttpConnectionResponseContent even when the server does not have a header.
+                    response.Content.Headers.ContentLength = stream.Length;
 
-                // The HTTP Client is adding the content length header on HttpConnectionResponseContent even when the server does not have a header.
-                response.Content.Headers.ContentLength = stream.Length;
-
-                // We do reset the stream in case it needs to be re-read.
-                stream.Seek(0, SeekOrigin.Begin);
+                    // We do reset the stream in case it needs to be re-read.
+                    stream.Seek(0, SeekOrigin.Begin);
+                }
             }
 
             return response;

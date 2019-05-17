@@ -173,6 +173,38 @@ namespace HttpRecorder.Tests
         }
 
         [Fact]
+        public async Task ItShouldExecuteMultipleRequestsInSequenceWithRecorderModeAuto()
+        {
+            // Let's clean the record first if any.
+            var recordedFileName = $"{nameof(ItShouldExecuteMultipleRequestsInSequenceWithRecorderModeAuto)}.har";
+            if (File.Exists(recordedFileName))
+            {
+                File.Delete(recordedFileName);
+            }
+
+            var client = CreateHttpClient(
+                HttpRecorderMode.Auto,
+                nameof(ItShouldExecuteMultipleRequestsInSequenceWithRecorderModeAuto));
+            var response1 = await client.GetAsync($"{ApiController.JsonUri}?name=1");
+            var response2 = await client.GetAsync($"{ApiController.JsonUri}?name=2");
+            var result1 = await response1.Content.ReadAsAsync<SampleModel>();
+            result1.Name.Should().Be("1");
+
+            var result2 = await response2.Content.ReadAsAsync<SampleModel>();
+            result2.Name.Should().Be("2");
+
+            // We resolve to replay at this point.
+            client = CreateHttpClient(
+               HttpRecorderMode.Auto,
+               nameof(ItShouldExecuteMultipleRequestsInSequenceWithRecorderModeAuto));
+            var response2_1 = await client.GetAsync($"{ApiController.JsonUri}?name=1");
+            var response2_2 = await client.GetAsync($"{ApiController.JsonUri}?name=2");
+
+            response2_1.Should().BeEquivalentTo(response1);
+            response2_2.Should().BeEquivalentTo(response2);
+        }
+
+        [Fact]
         public async Task ItShouldGetBinary()
         {
             HttpResponseMessage passthroughResponse = null;

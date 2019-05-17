@@ -2,6 +2,9 @@
   <!-- Common properties for all projects -->
   <PropertyGroup>
     <Authors>Julien Blin</Authors>
+    <Description>.NET HttpClient integration tests made easy.</Description>
+    <Copyright>Copyright (c) 2019, Julien Blin</Copyright>
+    <PackageLicenseExpression>BSD-2-Clause</PackageLicenseExpression>
     <Product>HttpRecorder</Product>
     <LangVersion>7.3</LangVersion>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
